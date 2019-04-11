@@ -5,14 +5,48 @@
 # mounted as a filesystem in a file, allowing for efficient incremental
 # backups using rsync
 #
-# 2019-03-17 Dolorosus: 
+# 2019-03-17 Dolorosus:
 #               add -s parameter to create an image of a defined size.
-#               add funtion cloneid to clone te UUID and the PTID from 
-#                   the SDCARD to the image. So restore is working on 
+#               add funtion cloneid to clone te UUID and the PTID from
+#                   the SDCARD to the image. So restore is working on
 #                   recent raspian versions.
 #
 #
+# 2019-04-11 AlbertoLopez:
+#							Need to convert this script to perform single
+#							partition-to-partition backups cloning diskIds and editing
+#							boot/cmdline.txt and /etc/fstab on destination parts as needed
+#						  to allow cloned partitions to be bootable/mountable
 #
+#							Destination partitions could be and entire SD (as rpi-clone does)
+#							or single partitions in a large USB disk.
+#
+#							Source	Destination		Action
+#							mmcblk0 sdb (SD)			Clones mmcblk0p1 -> sdb1 and mmcblk0p2 -> sdb2
+#							active	sdb (SD)			Clones active boot -> sdb1 and active
+#																		root -> sdb2 (makes it booteable SD-SD)
+#							aDev 		sdbX, sdbY		Clones aDev, part 1 -> sdbX and aDev, part 2 -> sdbY
+#
+#							src			dst						Clones src to dst
+#																		- If src and dst are devices, clones all
+#																			src partitions to dst
+#																		- If src and dst are part-list's, clones
+#																			the partitions one-to-one in the specified
+#																			order. It assumes the dst partitions has
+#																			the proper size. Does not initialize the
+#																			dst partition table
+#																		- If src is a part-list and dst a device,
+#																			clones all src partitions creating the
+#																			needed partitions on dst device
+#																		- If src is a device and dst a part-list,
+#																			clones all existing partitions in src
+#																			allocating them in the dst part-list in the
+#																			order specified
+#
+#						src can be a device spec (without de /dev prefix), part-list
+#						(defined below) or blank, in this case the source part-list
+#						corresponds to the actual active boot configuration (/boot, /root)
+
 
 VERSION=v1.0
 SDCARD=/dev/mmcblk0
@@ -28,7 +62,7 @@ setup () {
   	CYAN=$(tput setaf 6)
   	WHITE=$(tput setaf 7)
   	RESET=$(tput setaf 9)
-	
+
 	BOLD=$(tput bold)
 	NOATT=$(tput sgr0)
 	MYNAME=$(basename $0)
@@ -210,7 +244,7 @@ usage () {
     echo -e "        starts backup to 'rpi_backup.img', creating it if it does not exist"
     echo -e ""
     echo -e "    ${MYNAME} start -c -s 8000 /path/to/rpi_backup.img"
-    echo -e "        starts backup to 'rpi_backup.img', creating it" 
+    echo -e "        starts backup to 'rpi_backup.img', creating it"
     echo -e "        with a size of 8000mb if it does not exist"
     echo -e ""
     echo -e "    ${MYNAME} start /path/to/\$(uname -n).img"
@@ -232,7 +266,7 @@ setup
 
 # Read the command from command line
 case $1 in
-    start|mount|umount|gzip|cloneid) 
+    start|mount|umount|gzip|cloneid)
         opt_command=$1
         ;;
     -h|--help)
