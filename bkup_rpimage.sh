@@ -46,6 +46,12 @@
 #						src can be a device spec (without de /dev prefix), part-list
 #						(defined below) or blank, in this case the source part-list
 #						corresponds to the actual active boot configuration (/boot, /root)
+#
+#					A part-list is a list of comma separated partition names (without
+#					the /dev prefix). For example:
+#						mmcblk0p1,sda1,sdb5 or sda5,sda1,sdc1
+#
+
 
 
 VERSION=v1.0
